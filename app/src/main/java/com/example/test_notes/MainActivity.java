@@ -1,46 +1,82 @@
 package com.example.test_notes;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.content.ContentValues;
+import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
     private RecyclerView recyclerViewNotes;
-    private ArrayList<Note> notes = new ArrayList<>();
+    private NotesAdapter adapter;
+    private NotesDBHelper dbHelper;
+    private final ArrayList<Note> notes = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         recyclerViewNotes = findViewById(R.id.recyclerViewNotes);
-        notes.add(new Note("Test1", "Test Desc","day0", 9));
-        notes.add(new Note("Test2", "Test Desc1","day1", 5));
-        notes.add(new Note("Test3", "Test Desc2","day2", 4));
-        notes.add(new Note("Test4", "Test Desc3","day3", 3));
-        notes.add(new Note("Test5", "Test Desc4","day4", 2));
-        notes.add(new Note("Test6", "Test Desc5","day5", 1));
-        notes.add(new Note("Test7", "Test Desc6","day6", 6));
-        notes.add(new Note("Test8", "Test Desc7","day7", 7));
-        notes.add(new Note("Test9", "Test Desc8","day8", 8));
-        notes.add(new Note("Test10", "Test Desc91","day9", 10));
-        notes.add(new Note("Test11", "Test Desc2","day01", 9));
-        notes.add(new Note("Test22", "Test Desc13","day11", 5));
-        notes.add(new Note("Test33", "Test Desc24","day22", 4));
-        notes.add(new Note("Test44", "Test Desc35","day33", 3));
-        notes.add(new Note("Test55", "Test Desc46","day44", 2));
-        notes.add(new Note("Test66", "Test Desc57","day55", 1));
-        notes.add(new Note("Test77", "Test Desc68","day66", 6));
-        notes.add(new Note("Test88", "Test Desc79","day77", 7));
-        notes.add(new Note("Test99", "Test Desc80","day88", 8));
-        notes.add(new Note("Test100", "Test Desc91","day99", 10));
-        NotesAdapter adapter = new NotesAdapter(notes);
-        recyclerViewNotes.setLayoutManager(new GridLayoutManager(this,3));
+        dbHelper = new NotesDBHelper(this);
+        SQLiteDatabase database = dbHelper.getWritableDatabase();
+        database.delete(NotesContract.NotesEntry.TABLE_NAME,null,null);
+        Cursor cursor = database.query(NotesContract.NotesEntry.TABLE_NAME,null,null,null,null,null,null,null);
+        cursor.moveToNext();
+        while (cursor.moveToNext()){
+            String title = cursor.getString(cursor.getColumnIndex(NotesContract.NotesEntry.COLUMN_TITLE));
+            String description = cursor.getString(cursor.getColumnIndex(NotesContract.NotesEntry.COLUMN_DESCRIPTION));
+            String dayOfWeek = cursor.getString(cursor.getColumnIndex(NotesContract.NotesEntry.COLUMN_DAY_OF_WEEK));
+            int priority = cursor.getInt(cursor.getColumnIndex(NotesContract.NotesEntry.COLUMN_PRIORITY));
+            Note note = new Note(title,description,dayOfWeek,priority);
+            notes.add(note);
+        }
+        adapter = new NotesAdapter(notes);
+        recyclerViewNotes.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewNotes.setAdapter(adapter);
+        adapter.setOnNotesClickListener(new NotesAdapter.OnNoteClickListener() {
+            @Override
+            public void onNoteClick(int position) {
+
+            }
+
+            @Override
+            public void onLongClick(int position) {
+                remove(position);
+            }
+        });
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0,ItemTouchHelper.LEFT) {
+            @Override
+            public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                remove(viewHolder.getAdapterPosition());
+            }
+        });
+        itemTouchHelper.attachToRecyclerView(recyclerViewNotes);
+    }
+
+    private void remove(int position) {
+        notes.remove(position);
+        adapter.notifyDataSetChanged();
+    }
+
+    public void onClickAddNote(View view) {
+        Intent intent = new Intent(this, AddNoteActivity.class);
+        startActivity(intent);
     }
 }
