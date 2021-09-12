@@ -3,6 +3,9 @@ package com.example.test_notes;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -23,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
 
     private RecyclerView recyclerViewNotes;
     private NotesAdapter adapter;
-    private NotesDataBase notesDataBase;
+    private MainViewModel viewModel;
 
     private final ArrayList<Note> notes = new ArrayList<>();
 
@@ -32,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         recyclerViewNotes = findViewById(R.id.recyclerViewNotes);
-        notesDataBase = NotesDataBase.getInstance(this);
+        viewModel = new ViewModelProvider(this).get(MainViewModel.class);
         getData();
         adapter = new NotesAdapter(notes);
         recyclerViewNotes.setLayoutManager(new LinearLayoutManager(this));
@@ -64,9 +67,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void remove(int position) {
         Note note = notes.get(position);
-        notesDataBase.notesDao().deleteNote(note);
-        getData();
-        adapter.notifyDataSetChanged();
+        viewModel.deleteNote(note);
     }
 
     public void onClickAddNote(View view) {
@@ -75,9 +76,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getData(){
-        List<Note> notesFromDB = notesDataBase.notesDao().getAllNotes();
-        notes.clear();
-        notes.addAll(notesFromDB);
+        LiveData<List<Note>> notesFromDB = viewModel.getNotes();
+        notesFromDB.observe(this, new Observer<List<Note>>() {
+            @Override
+            public void onChanged(List<Note> notesFromLiveData) {
+                notes.clear();
+                notes.addAll(notesFromLiveData);
+                adapter.notifyDataSetChanged();
+            }
+        });
     }
-
 }

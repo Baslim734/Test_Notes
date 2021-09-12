@@ -1,6 +1,7 @@
 package com.example.test_notes;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.content.ContentValues;
 import android.content.Intent;
@@ -20,14 +21,14 @@ public class AddNoteActivity extends AppCompatActivity {
     private Spinner spinnerDaysOfWeek;
     private RadioGroup radioGroupPriority;
 
-    private NotesDataBase database;
+    private MainViewModel viewModel;
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_note);
-        database = NotesDataBase.getInstance(this);
+        viewModel = new ViewModelProvider(this).get(MainViewModel.class);
 
         editTextTitle = findViewById(R.id.editTextTitle);
         editTextDescription = findViewById(R.id.editTextDescription);
@@ -46,7 +47,7 @@ public class AddNoteActivity extends AppCompatActivity {
 
         if(isField(title, description)) {
            Note note = new Note(title, description,dayOfWeek ,priority);
-            database.notesDao().insertNote(note);
+            viewModel.insertNote(note);
             Intent intent = new Intent(this, MainActivity.class);
             startActivity(intent);
         }
